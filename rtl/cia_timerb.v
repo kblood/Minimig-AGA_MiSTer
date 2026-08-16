@@ -110,7 +110,8 @@ always @(posedge clk)
   end
 
 // Timer reload conditions (same as Timer A)
-assign reload = thi_load_eclk | forceload | underflow;
+wire loadednow = thi_load_eclk | forceload;
+assign reload = loadednow | underflow;
 
 // 16-bit down counter
 always @(posedge clk)
@@ -125,7 +126,7 @@ always @(posedge clk)
 
 // Timer state detection
 assign zero = ~|tmr;                    // Timer equals zero
-assign underflow = zero & start & count; // Underflow when counting through zero
+assign underflow = zero & start & count & ~loadednow; // Underflow when counting through zero
 
 // Output signals
 assign irq = underflow;  // Interrupt request on underflow

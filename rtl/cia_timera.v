@@ -112,7 +112,8 @@ always @(posedge clk)
 // 1. Force load strobe (bit 4 of control register)
 // 2. Write to high byte when stopped or in one-shot mode
 // 3. Timer underflow (automatic reload)
-assign reload = thi_load_eclk | forceload | underflow;
+wire loadednow = thi_load_eclk | forceload;
+assign reload = loadednow | underflow;
 
 // 16-bit down counter
 always @(posedge clk)
@@ -127,7 +128,7 @@ always @(posedge clk)
 
 // Timer state detection
 assign zero = ~|tmr;                    // Timer equals zero
-assign underflow = zero & start & count; // Underflow when counting through zero
+assign underflow = zero & start & count & ~loadednow; // Underflow when counting through zero
 
 // Output signals
 assign tmra_ovf = underflow;  // Timer A overflow for Timer B cascade mode
