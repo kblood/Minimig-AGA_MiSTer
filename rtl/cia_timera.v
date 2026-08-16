@@ -108,6 +108,23 @@ always @(posedge clk)
     thi_load <= thi & wr & (~start | oneshot);
   end
 
+reg [1:0] startdelay;
+wire cr_start = tcr & wr & data_in[0] & ~start;
+wire hi_start = thi_load & oneshot & ~start;
+wire counting = start & count & ~|startdelay;
+
+always @(posedge clk)
+  if (clk7_en) begin
+    if (reset)
+      startdelay <= 2'd0;
+    else if (cr_start)
+      startdelay <= 2'd2;
+    else if (hi_start)
+      startdelay <= 2'd3;
+    else if (count && startdelay != 2'd0)
+      startdelay <= startdelay - 1'b1;
+  end
+
 // Timer reload conditions:
 // 1. Force load strobe (bit 4 of control register)
 // 2. Write to high byte when stopped or in one-shot mode
@@ -121,13 +138,13 @@ always @(posedge clk)
       tmr[15:0] <= 16'hFF_FF;  // Reset to maximum value
     else if (reload)
       tmr[15:0] <= {tmlh[7:0],tmll[7:0]};  // Load from latches
-    else if (start && count)
+    else if (counting)
       tmr[15:0] <= tmr[15:0] - 16'd1;     // Count down
   end
 
 // Timer state detection
 assign zero = ~|tmr;                    // Timer equals zero
-assign underflow = zero & start & count; // Underflow when counting through zero
+assign underflow = zero & counting; // Underflow when counting through zero
 
 // Output signals
 assign tmra_ovf = underflow;  // Timer A overflow for Timer B cascade mode
